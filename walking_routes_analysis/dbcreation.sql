@@ -15,7 +15,7 @@ CREATE TABLE `routelist`
     `relationid` BIGINT,
     `type` VARCHAR(200),
     `ref` VARCHAR(25),
-    `grnr` INT,
+    `gr_nr` INT DEFAULT NULL,
     `name` VARCHAR(500),
     `location` VARCHAR(200),
     `remark` TEXT    

@@ -11,10 +11,16 @@ $dsn = "mysql:host=$db_server;dbname=$db_name;charset=utf8";
 $dbConn = new PDO($dsn, $db_user, $db_pw);
 
 $pageTemplate = <<<HTML
+<!DOCTYPE html>
 <html>
-<head></head>
+<head>
+<meta charset="utf-8" />
+<title>Details of <RELATIONREF></title>
+<link rel="stylesheet" href="style.css" type="text/css">
+<script src="Chart.bundle.js" type="text/javascript"></script>
+</head>
 <body>
-<h1>Details of relation XXXXX (XXXXXXXXXX)</h1>
+<h1>Details of relation <RELATIONID> (<RELATIONREF>)</h1>
 <h2>Tags and basic info</h2>
 All tags of the relation:
 <table>
@@ -28,15 +34,43 @@ Number of components: <COMPONENTS><br>
 <tr><th>Type</th><th>Total length (km)</th><th>Total length (%)</th><th>Number of ways</th></tr>
 <HIGHWAYTABLE>
 </table>
+<canvas id="highwayChart" style="height:400px"></canvas>
+<script>
+var ctx = document.getElementById("highwayChart");
+var myChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: [<HIGHWAYCHARTLABELS>],
+        datasets: [{
+            label: 'Length by highway tag (km)',
+            data: [<HIGHWAYCHARTDATA>],
+            borderWidth: 1,
+            backgroundColor: 'rgba(100, 255, 100, 0.8)',
+            borderColor: 'rgba(0, 255, 0, 1)'
+        }]
+    },
+    backgroundColor: 'rgba(100, 255, 100, 1)',
+    options: {
+    responsive: false,
+    maintainAspectRatio: false,
+        scales: {
+            yAxes: [{
+                ticks: {
+                    beginAtZero:true
+                }
+            }]
+        }
+    }
+});
+</script>
 Detail for the tracks
 <table>
 <tr><th>Tracktype</th><th>Total length</th><th>Number of ways</th></tr>
 <TRACKTABLE>
 </table>
-
 <h2>Surface</h2>
 <table>
-<tr><th>Tracktype</th><th>Total length</th><th>Number of ways</th></tr>
+<tr><th>Surface</th><th>Total length</th><th>Total length (%)</th><th>Number of ways</th></tr>
 <SURFACETABLE>
 </table>
 
@@ -99,11 +133,19 @@ $stmt = $dbConn->prepare($sql);
 $stmt->execute(['downloadid1'=>$downloadid, 'downloadid2'=>$downloadid]);
 $tableRow = "<tr><td>%s</td><td>%1.1f</td><td>%1.1f %%</td><td>%d</td></tr>\r\n";
 $tableData = '';
+$highwayChartData = Array();
+$highwayChartLabels = Array();
 while($row = $stmt->fetch())
 {
 	$tableData .= sprintf($tableRow, $row['tag_highway'], $row['length']/1000, $row['length']/$totallength*100, $row['waycount']);
+	$highwayChartData[] = $row['length']/1000;
+	$highwayChartLabels[] = $row['tag_highway'];
 }
+$highwayChartData = implode(", ", $highwayChartData);
+$highwayChartLabels = "\"" . implode("\", \"", $highwayChartLabels) . "\"";
 $pageTemplate = str_replace('<HIGHWAYTABLE>', $tableData, $pageTemplate);
+$pageTemplate = str_replace('<HIGHWAYCHARTLABELS>', $highwayChartLabels, $pageTemplate);
+$pageTemplate = str_replace('<HIGHWAYCHARTDATA>', $highwayChartData, $pageTemplate);
 
 // get the different tracktypes for tracks
 $sql = "SELECT w.tag_tracktype, COUNT(*) waycount, SUM(length) length
@@ -124,6 +166,24 @@ while($row = $stmt->fetch())
 $pageTemplate = str_replace('<TRACKTABLE>', $tableData, $pageTemplate);
 
 // get the surface data
+$sql = "SELECT w.tag_surface, COUNT(*) waycount, SUM(length) length
+			FROM relationmembers rm
+			JOIN ways w
+				ON rm.downloadid = w.downloadid AND rm.memberid = w.wayid
+			WHERE rm.membertype = 'way' AND rm.downloadid = :downloadid1 AND w.downloadid = :downloadid2
+			GROUP BY w.tag_surface
+			ORDER BY length DESC;";
+$stmt = $dbConn->prepare($sql);
+$stmt->execute(['downloadid1'=>$downloadid, 'downloadid2'=>$downloadid]);
+$tableRow = "<tr><td>%s</td><td>%1.1f</td><td>%1.1f %%</td><td>%d</td></tr>\r\n";
+$tableData = '';
+while($row = $stmt->fetch())
+{
+	$tableData .= sprintf($tableRow, $row['tag_surface'], $row['length']/1000, $row['length']/$totallength*100, $row['waycount']);
+}
+$pageTemplate = str_replace('<SURFACETABLE>', $tableData, $pageTemplate);
+
+// get unpaved/paved
 $sql = "SELECT w.tag_surface, w.tag_highway, w.tag_tracktype, COUNT(*) waycount, SUM(length) length
 			FROM relationmembers rm
 			JOIN ways w
