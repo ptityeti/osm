@@ -54,5 +54,7 @@ foreach($orderedNodes as $trackSegment)
 	$outputPoints = "</trkseg>\r\n";
 }
 
+// print output
+header('Content-Type: application/xml');
 print(str_replace('<TRACKSEGMENTS>', $outputPoints, $gpxTemplate));
 ?>
