@@ -18,8 +18,10 @@ CREATE TABLE `routelist`
     `gr_nr` INT DEFAULT NULL,
     `name` VARCHAR(500),
     `location` VARCHAR(200),
+    `is_container` TINYINT,
     `remark` TEXT    
 );
+-- ALTER TABLE routelist ADD COLUMN is_container TINYINT;
 
 -- create table downloads
 -- this will contain one record for each time the update script tries to download a relation
@@ -60,9 +62,11 @@ CREATE TABLE `ways`
     `taglist` TEXT,
     `length` DOUBLE, -- calculated afterwards based on table pointsinway
     `pointcount` BIGINT,
+    `is_unpaved` TINYINT DEFAULT 0, -- calculated based on tag_highway, tag_surface and tag_tracktype
     KEY(`downloadid`, `wayid`),
     FOREIGN KEY `FK_ways`(`downloadid`) REFERENCES `downloads`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB;
+-- ALTER TABLE ways ADD COLUMN is_unpaved TINYINT DEFAULT 0;
 
 CREATE TABLE `pointsinway`
 (
@@ -96,6 +100,8 @@ CREATE TABLE `relationdatacalculated`
     `totallength` DOUBLE,
     `totalpointcount` INT,
     `components` INT,
+    `length_unpaved` DOUBLE,
     UNIQUE (`downloadid`, `relationid`),
     FOREIGN KEY `FK_relationtags`(`downloadid`) REFERENCES `downloads`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB;
+-- ALTER TABLE relationdatacalculated ADD COLUMN length_unpaved DOUBLE;

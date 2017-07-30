@@ -117,6 +117,19 @@ function getDataFromRelation($relationid, $dbConn)
 	$sql = "UPDATE ways w JOIN (SELECT p1.downloadid, p1.wayid, SUM(2*6371000*ASIN(SQRT(POW(SIN((p1.lat-p2.lat)*PI()/360),2)+COS(p1.lat*PI()/180)*COS(p2.lat*PI()/180)*POW(SIN((p1.lng-p2.lng)*PI()/360),2)))) d FROM pointsinway p1 JOIN pointsinway p2 ON p1.downloadid = p2.downloadid AND p1.wayid = p2.wayid AND p1.idx + 1 = p2.idx WHERE p1.downloadid = :downloadid1 AND p2.downloadid = :downloadid2 GROUP BY p1.downloadid, p1.wayid) t ON w.downloadid = t.downloadid AND w.wayid = t.wayid SET w.length = t.d;";
 	$stmt = $dbConn->prepare($sql);
 	$stmt->execute(['downloadid1'=>$downloadid, 'downloadid2'=>$downloadid]);
+	// update the table ways setting the is_unpaved flag
+	$sql = "UPDATE ways SET is_unpaved = 1 
+				-- surface is set to unpaved value
+				WHERE (tag_surface IN ('unpaved', 'dirt', 'gravel', 'earth', 'ground', 'grass', 'compacted', 'wood', 'sand', 'fine_gravel') 
+						-- surface is not set to clear value and it is path or track not grade1
+						OR (
+							tag_surface NOT IN ('unpaved', 'dirt', 'gravel', 'earth', 'ground', 'grass', 'compacted', 'wood', 'sand', 'fine_gravel', 'paved', 'concrete', 'asphalt', 'sett', 'cobblestone', 'paving_stones') 
+								AND 
+							(tag_highway = 'path' OR (tag_highway = 'track' AND tag_tracktype <> 'grade1'))
+						)
+				) AND downloadid = :downloadid";
+	$stmt = $dbConn->prepare($sql);
+	$stmt->execute(['downloadid' => $downloadid]);
 	
 	// insert a record in the table relationdatacalculated
 	// get number of components
