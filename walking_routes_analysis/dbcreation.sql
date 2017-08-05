@@ -21,7 +21,6 @@ CREATE TABLE `routelist`
     `is_container` TINYINT,
     `remark` TEXT    
 );
--- ALTER TABLE routelist ADD COLUMN is_container TINYINT;
 
 -- create table downloads
 -- this will contain one record for each time the update script tries to download a relation
@@ -66,7 +65,6 @@ CREATE TABLE `ways`
     KEY(`downloadid`, `wayid`),
     FOREIGN KEY `FK_ways`(`downloadid`) REFERENCES `downloads`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB;
--- ALTER TABLE ways ADD COLUMN is_unpaved TINYINT DEFAULT 0;
 
 CREATE TABLE `pointsinway`
 (
@@ -104,4 +102,3 @@ CREATE TABLE `relationdatacalculated`
     UNIQUE (`downloadid`, `relationid`),
     FOREIGN KEY `FK_relationtags`(`downloadid`) REFERENCES `downloads`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB;
--- ALTER TABLE relationdatacalculated ADD COLUMN length_unpaved DOUBLE;

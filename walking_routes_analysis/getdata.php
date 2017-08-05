@@ -10,7 +10,7 @@
 // include file containing db connection data etc.
 include 'settings.inc.php';
 
-include 'getorderednodes.php';
+include 'getorderednodes.inc.php';
 
 // set the time-out to 10 minutes. Necessary for the bigger relations.
 ini_set('default_socket_timeout', 600);
