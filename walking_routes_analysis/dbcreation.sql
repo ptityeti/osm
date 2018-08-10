@@ -18,6 +18,7 @@ CREATE TABLE `routelist`
     `gr_nr` INT DEFAULT NULL,
     `name` VARCHAR(500),
     `location` VARCHAR(200),
+    `is_container` TINYINT,
     `remark` TEXT    
 );
 
@@ -60,6 +61,7 @@ CREATE TABLE `ways`
     `taglist` TEXT,
     `length` DOUBLE, -- calculated afterwards based on table pointsinway
     `pointcount` BIGINT,
+    `is_unpaved` TINYINT DEFAULT 0, -- calculated based on tag_highway, tag_surface and tag_tracktype
     KEY(`downloadid`, `wayid`),
     FOREIGN KEY `FK_ways`(`downloadid`) REFERENCES `downloads`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB;
@@ -96,6 +98,7 @@ CREATE TABLE `relationdatacalculated`
     `totallength` DOUBLE,
     `totalpointcount` INT,
     `components` INT,
+    `length_unpaved` DOUBLE,
     UNIQUE (`downloadid`, `relationid`),
     FOREIGN KEY `FK_relationtags`(`downloadid`) REFERENCES `downloads`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB;

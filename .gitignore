@@ -1,2 +1,4 @@
-# ignore db settings file
+# do not commit passwords and such
 walking_routes_analysis/settings.inc.php
+#folder containing my local messing around
+walking_routes_analysis/localwrk

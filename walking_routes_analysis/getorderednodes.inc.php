@@ -32,7 +32,6 @@ function getOrderedNodes($relationid, $downloadid, $dbConn)
 	
 	// create an array that says if ways should be passed forward or backward
 	$directions = getWaysOrder($relationid, $downloadid, $dbConn);
-	print_r($directions);
 	// loop over the points and put them in the right order
 	$previousComponent = 0; // to keep track of a change in component
 	$presentComponent = 0;

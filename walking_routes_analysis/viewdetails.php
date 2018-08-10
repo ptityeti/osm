@@ -36,9 +36,10 @@ Number of components: <COMPONENTS><br>
 </table>
 <canvas id="highwayChart" style="height:400px"></canvas>
 <script>
+// set chart highways
 var ctx = document.getElementById("highwayChart");
 var myChart = new Chart(ctx, {
-    type: 'bar',
+    type: 'horizontalBar',
     data: {
         labels: [<HIGHWAYCHARTLABELS>],
         datasets: [{
@@ -54,7 +55,7 @@ var myChart = new Chart(ctx, {
     responsive: false,
     maintainAspectRatio: false,
         scales: {
-            yAxes: [{
+            xAxes: [{
                 ticks: {
                     beginAtZero:true
                 }
@@ -65,10 +66,45 @@ var myChart = new Chart(ctx, {
 </script>
 Detail for the tracks
 <table>
-<tr><th>Tracktype</th><th>Total length</th><th>Number of ways</th></tr>
+<tr><th>Tracktype</th><th>Total length</th><th>Percentage of length</th><th>Number of ways</th></tr>
 <TRACKTABLE>
 </table>
 <h2>Surface</h2>
+<canvas id="highwayChart" style="height:400px"></canvas>
+<script>
+// set chart paved/unpaved
+var ctx = document.getElementById("unpavedChart");
+var myChart = new Chart(ctx, {
+	type: 'horizontalBar',
+	data: {
+		labels: [],
+		datasets: [{
+			label: 'Length by highway tag (km)',
+			data: [<HIGHWAYCHARTDATA>],
+			borderWidth: 1,
+			backgroundColor: 'rgba(100, 255, 100, 0.8)',
+			borderColor: 'rgba(0, 255, 0, 1)'
+		}]
+	},
+	backgroundColor: 'rgba(100, 255, 100, 1)',
+	options: {
+		responsive: false,
+		maintainAspectRatio: false,
+		scales: {
+			xAxes: [{
+				ticks: {
+					beginAtZero:true
+				},
+				stacked: true
+			}],
+			yAxes: [{
+				stacked: true
+			}]
+		}
+	}
+});
+
+</script>
 <table>
 <tr><th>Surface</th><th>Total length</th><th>Total length (%)</th><th>Number of ways</th></tr>
 <SURFACETABLE>
@@ -140,6 +176,11 @@ while($row = $stmt->fetch())
 	$tableData .= sprintf($tableRow, $row['tag_highway'], $row['length']/1000, $row['length']/$totallength*100, $row['waycount']);
 	$highwayChartData[] = $row['length']/1000;
 	$highwayChartLabels[] = $row['tag_highway'];
+	// if it is track, remember the length for calculations over track details
+	if($row['tag_highway'] == 'track')
+	{
+		$trackLength = $row['length'];
+	}
 }
 $highwayChartData = implode(", ", $highwayChartData);
 $highwayChartLabels = "\"" . implode("\", \"", $highwayChartLabels) . "\"";
@@ -157,11 +198,11 @@ $sql = "SELECT w.tag_tracktype, COUNT(*) waycount, SUM(length) length
 			ORDER BY tag_tracktype;";
 $stmt = $dbConn->prepare($sql);
 $stmt->execute(['downloadid1'=>$downloadid, 'downloadid2'=>$downloadid]);
-$tableRow = "<tr><td>%s</td><td>%1.1f</td><td>%d</td></tr>\r\n";
+$tableRow = "<tr><td>%s</td><td>%1.1f</td><td>%1.1f %%</td><td>%d</td></tr>\r\n";
 $tableData = '';
 while($row = $stmt->fetch())
 {
-	$tableData .= sprintf($tableRow, $row['tag_tracktype'], $row['length']/1000, $row['waycount']);
+	$tableData .= sprintf($tableRow, $row['tag_tracktype'], $row['length']/1000, $row['length']/$trackLength*100, $row['waycount']);
 }
 $pageTemplate = str_replace('<TRACKTABLE>', $tableData, $pageTemplate);
 
@@ -183,7 +224,7 @@ while($row = $stmt->fetch())
 }
 $pageTemplate = str_replace('<SURFACETABLE>', $tableData, $pageTemplate);
 
-// get unpaved/paved
+// get surface, highway and tracktype in array $surfaceData
 $sql = "SELECT w.tag_surface, w.tag_highway, w.tag_tracktype, COUNT(*) waycount, SUM(length) length
 			FROM relationmembers rm
 			JOIN ways w
@@ -193,16 +234,22 @@ $sql = "SELECT w.tag_surface, w.tag_highway, w.tag_tracktype, COUNT(*) waycount,
 			ORDER BY length DESC;";
 $stmt = $dbConn->prepare($sql);
 $stmt->execute(['downloadid1'=>$downloadid, 'downloadid2'=>$downloadid]);
+// define for each entry in $surfaceData if it is paved or not
+// to that end an index 'unpaved' is added to each element of $surfaceData
+// with values 1 for unpaved and 0 for paved
 $surfaceData = $stmt->fetchAll();
 $resultCount = count($resultData);
-$unpavedList = ['unpaved', 'dirt', 'gravel', 'earth', 'ground', 'grass'];
-$pavedList = ['paved', 'concrete', 'asphalt', 'sett', 'cobblestone'];
+$unpavedList = ['unpaved', 'dirt', 'gravel', 'earth', 'ground', 'grass', 'compacted', 'wood', 'sand', 'fine_gravel'];
+$pavedList = ['paved', 'concrete', 'asphalt', 'sett', 'cobblestone', 'paving_stones'];
 for($i = 0; $i < $resultCount; $i++)
 {
 	if(
+		// surface is in the list with unpaved materials
 		find($surfaceData[$i]['surface'], $unpavedList) 
+		// it is a path and surface is not in list with paved materials
 		or ($surfaceData[$i]['highway'] == 'path' and !find($surfaceData[$i]['surface'], $pavedList))
-		or ($surfaceData[$i]['highway'] == 'path' and !find($surfaceData[$i]['surface'], $pavedList) and $surfaceData[$i]['tracktype'] != 'grade1')
+		// it is a track, surface is not in paved list and tracktype is not grade1
+		or ($surfaceData[$i]['highway'] == 'track' and !find($surfaceData[$i]['surface'], $pavedList) and $surfaceData[$i]['tracktype'] != 'grade1')
 	)
 	{
 		$surfaceData['unpaved'] = 1;
